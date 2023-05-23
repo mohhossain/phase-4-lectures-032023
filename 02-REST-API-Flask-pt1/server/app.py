@@ -61,10 +61,11 @@ class Productions(Resource):
     
     
     def post(self):
-        
-        # print(request.get_json('message'))
-        
+
         production = Production(title=request.form.get("title"), genre = request.form.get('genre'), director = request.form.get('director'), description= request.form.get('description'), budget= request.form.get('budget'), image= request.form.get('image'), ongoing= False)
+        
+        # to make post using json: 
+        # production = Production(title=request.json.get("title"), genre = request.json.get('genre'), director = request.json.get('director'), description= request.json.get('description'), budget= request.json.get('budget'), image= request.json.get('image'), ongoing= False)
         
         db.session.add(production)
         db.session.commit()
