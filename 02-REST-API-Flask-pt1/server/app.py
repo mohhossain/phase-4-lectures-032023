@@ -20,8 +20,8 @@ from flask import Flask, request, make_response, jsonify
 from flask_migrate import Migrate
 
 # 1. ✅ Import `Api` and `Resource` from `flask_restful`
-    # ❓ What do these two classes do at a higher level? 
-
+    # ❓ What do these two classes do at a higher level?
+from flask_restful import Api, Resource
 from models import db, Production, CrewMember
 
 app = Flask(__name__)
@@ -35,9 +35,12 @@ db.init_app(app)
 
 # 2. ✅ Initialize the Api
     # `api = Api(app)`
+    
+api = Api(app)
 
 # 3. ✅ Create a Production class that inherits from Resource
 
+class Productions(Resource):
 # 4. ✅ Create a GET (All) Route
     # 4.1 Make a `get` method that takes `self` as a param.
     # 4.2 Create a `productions` array.
@@ -50,6 +53,27 @@ db.init_app(app)
     #  )
     # 4.5 Return `response`.
     # 4.6 After building the route, run the server and test in the browser.
+    
+    def get(self):
+        productions = [ p.to_dict() for p in Production.query.all()]
+        
+        return productions, 200
+    
+    
+    def post(self):
+        
+        # print(request.get_json('message'))
+        
+        production = Production(title=request.form.get("title"), genre = request.form.get('genre'), director = request.form.get('director'), description= request.form.get('description'), budget= request.form.get('budget'), image= request.form.get('image'), ongoing= False)
+        
+        db.session.add(production)
+        db.session.commit()
+        
+        return production.to_dict(), 201
+    
+        
+        
+api.add_resource(Productions, '/productions')
   
 # 5. ✅ Serialization
     # This is great, but there's a cleaner way to do this! Serialization will allow us to easily add our 
