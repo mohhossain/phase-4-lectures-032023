@@ -18,6 +18,7 @@ from flask_restful import Api, Resource
 
 # 1.✅ Import NotFound from werkzeug.exceptions for error handling
 
+from werkzeug.exceptions import NotFound
 
 from models import db, Production, CrewMember
 
@@ -29,11 +30,11 @@ app.json.compact = False
 migrate = Migrate(app, db)
 db.init_app(app)
 
-
 api = Api(app)
 
 class Productions(Resource):
     def get(self):
+        print("This is the main resource")
         production_list = [p.to_dict() for p in Production.query.all()]
         response = make_response(
             production_list,
@@ -44,13 +45,13 @@ class Productions(Resource):
 
     def post(self):
         new_production = Production(
-            title=request.form['title'],
-            genre=request.form['genre'],
-            budget=int(request.form['budget']),
-            image=request.form['image'],
-            director=request.form['director'],
-            description=request.form['description'],
-            ongoing=bool(request.form['ongoing']),
+            title=request.json['title'],
+            genre=request.json['genre'],
+            budget=int(request.json['budget']),
+            image=request.json['image'],
+            director=request.json['director'],
+            description=request.json['description'],
+            ongoing=bool(request.json['ongoing']),
         )
 
         db.session.add(new_production)
@@ -63,21 +64,36 @@ class Productions(Resource):
             201,
         )
         return response
+    
+    # @app.route("/productions/<int:id>")
+    # def get_by_id(id):
+        
+    #     production = Production.query.filter_by(id = id).first().to_dict()
+    #     # print(production)
+        
+    #     # return production.to_dict(), 200
+    #     return production
 api.add_resource(Productions, '/productions')
 
 
-# class ProductionByID(Resource):
-#     def get(self,id):
-#         production = Production.query.filter_by(id=id).first()
-# # 3.✅ If a production is not found raise the NotFound exception
+class ProductionByID(Resource):
     
-#         production_dict = production.to_dict()
-#         response = make_response(
-#             production_dict,
-#             200
-#         )
+    def get(self,id):
+        production = Production.query.filter_by(id=id).first()
+# 3.✅ If a production is not found raise the NotFound exception
+
+        if not production:
+            raise NotFound('Production not found')
+
+        print("This is the resource with id")
+    
+        production_dict = production.to_dict()
+        response = make_response(
+            production_dict,
+            200
+        )
         
-#         return response
+        return response
 
 # 4.✅ Patch
     # 4.1 Create a patch method that takes self and id
@@ -86,6 +102,30 @@ api.add_resource(Productions, '/productions')
     # 4.4 Loop through the request.form object and update the productions attributes. Note: Be cautions of the data types to avoid errors.
     # 4.5 add and commit the updated production 
     # 4.6 Create and return the response
+    
+    def patch(self, id):
+        production = Production.query.filter_by( id = id).first()
+        
+        if not production:
+            raise NotFound('Production not found')
+        
+        allowed_params = ['ongoing', 'image']
+        
+        for attr in request.json:
+            if attr not in allowed_params:
+                return {"error": "Params not allowed"}
+            else:
+                setattr(production, attr, request.json[attr])
+            
+        # production.ongoing = request.json['ongoing']
+    
+        db.session.add(production)
+        db.session.commit()
+        
+        return production.to_dict(), 200
+        
+        
+        
     
     # def patch(self, id):
     #     production = Production.query.filter_by(id=id).first()
@@ -115,6 +155,18 @@ api.add_resource(Productions, '/productions')
     # 5.3 If the production is not found raise the NotFound exception
     # 5.4 delete the production and commit 
     # 5.5 create a response with the status of 204 and return the response 
+    
+    def delete(self, id):
+        production = Production.query.filter_by(id = id).first()
+        
+        if not production:
+            raise NotFound('Production not found')
+        
+        db.session.delete(production)
+        db.session.commit()
+        
+        return None, 204
+    
     # def delete(self, id):
     #     production = Production.query.filter_by(id=id).first()
     #     if not production:
@@ -127,12 +179,18 @@ api.add_resource(Productions, '/productions')
     #     return response
 
    
-# api.add_resource(ProductionByID, '/productions/<int:id>')
+api.add_resource(ProductionByID, '/productions/<int:id>')
 
 # 2.✅ use the @app.errorhandler() decorator to handle Not Found
     # 2.1 Create the decorator and pass it NotFound
     # 2.2 Use make_response to create a response with a message and the status 404
     # 2.3 return t he response
+    
+@app.errorhandler(NotFound)
+def resource_not_found(e): 
+    return {"message": "The path you are looking for doesn't exist"}, 404
+
+
 
 
 # To run the file as a script
